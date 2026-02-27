@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Web Thi Toán Lớp 1</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: auto; padding: 10px; }
+    .question { margin: 15px 0; padding-bottom: 10px; border-bottom: 1px solid #ddd; }
+    .timer { font-size: 20px; color: red; font-weight: bold; }
+    button { padding: 8px 14px; margin-top: 10px; cursor: pointer; }
+    input[type="text"] { padding: 6px; width: 120px; font-size: 16px; }
+    label { font-size: 16px; }
+  </style>
+</head>
+<body>
+
+<h1>Web Thi Toán Lớp 1</h1>
+
+<div id="login">
+  <p>Nhập tên học sinh:</p>
+  <input id="studentName" placeholder="Nguyễn Yến, Tuấn, Khánh..." />
+  <button onclick="startExam()">Bắt đầu làm bài</button>
+  <p><small>Danh sách hợp lệ: Nguyễn Yến, Ninh Yến, Ngọc, Bảo, Hân, Khánh, Tuấn</small></p>
+</div>
+
+<div id="exam" style="display:none;">
+  <p class="timer">⏱ Thời gian còn lại: <span id="time">30:00</span></p>
+  <div id="questionBox"></div>
+  <button onclick="submitExam()">Nộp bài</button>
+</div>
+
+<div id="result" style="display:none;"></div>
+
+<script>
+const students = ["Nguyễn Yến", "Ninh Yến", "Ngọc", "Bảo", "Hân", "Khánh", "Tuấn"];
+
+const questions = [
+  { type: "mcq", question: "1 + 1 = ?", options: ["1", "2", "3"], answer: "2" },
+  { type: "input", question: "2 + 1 = ?", answer: "3" },
+  { type: "mcq", question: "3 - 1 = ?", options: ["1", "2", "3"], answer: "2" },
+  { type: "input", question: "4 - 2 = ?", answer: "2" },
+  { type: "mcq", question: "2 + 2 = ?", options: ["3", "4", "5"], answer: "4" },
+  { type: "input", question: "5 - 3 = ?", answer: "2" },
+
+  { type: "mcq", question: "Số lớn hơn: 5 hay 3?", options: ["5", "3"], answer: "5" },
+  { type: "input", question: "Điền số còn thiếu: 1, 2, __, 4", answer: "3" },
+  { type: "mcq", question: "🍎🍎🍎 có mấy quả?", options: ["2", "3", "4"], answer: "3" },
+  { type: "input", question: "Số liền sau của 4 là?", answer: "5" },
+
+  { type: "mcq", question: "4 + 1 = ?", options: ["4", "5", "6"], answer: "5" },
+  { type: "input", question: "6 - 1 = ?", answer: "5" },
+  { type: "mcq", question: "Số bé hơn: 2 hay 7?", options: ["2", "7"], answer: "2" },
+  { type: "input", question: "Điền số còn thiếu: 5, 6, __, 8", answer: "7" },
+  { type: "mcq", question: "Có 3 con mèo, thêm 1 con nữa. Có tất cả bao nhiêu con?", options: ["3", "4", "5"], answer: "4" },
+
+  { type: "input", question: "7 - 2 = ?", answer: "5" },
+  { type: "mcq", question: "Số nào lớn hơn?", options: ["9", "6"], answer: "9" },
+  { type: "input", question: "Số liền trước của 5 là?", answer: "4" },
+  { type: "mcq", question: "1 + 4 = ?", options: ["4", "5", "6"], answer: "5" },
+  { type: "input", question: "8 - 3 = ?", answer: "5" },
+
+  { type: "mcq", question: "2, 4, __, 8 (điền số đúng)", options: ["5", "6", "7"], answer: "6" },
+  { type: "input", question: "10 - 5 = ?", answer: "5" },
+  { type: "mcq", question: "Có 2 bạn, thêm 2 bạn nữa. Có tất cả mấy bạn?", options: ["2", "3", "4"], answer: "4" },
+  { type: "input", question: "3 + 3 = ?", answer: "6" },
+  { type: "mcq", question: "Số nào bé hơn?", options: ["1", "9"], answer: "1" },
+
+  { type: "input", question: "9 - 4 = ?", answer: "5" },
+  { type: "mcq", question: "0 + 5 = ?", options: ["0", "4", "5"], answer: "5" },
+  { type: "input", question: "Điền số còn thiếu: 6, __, 8", answer: "7" },
+  { type: "mcq", question: "Số liền sau của 9 là?", options: ["8", "9", "10"], answer: "10" },
+  { type: "input", question: "5 + 0 = ?", answer: "5" }
+];
+
+let selectedQuestions = [];
+let timer;
+let timeLeft = 1800;
+
+function startExam() {
+  const name = document.getElementById("studentName").value.trim();
+  if (!students.includes(name)) {
+    alert("Tên không hợp lệ! Hãy nhập đúng tên trong danh sách.");
+    return;
+  }
+  document.getElementById("login").style.display = "none";
+  document.getElementById("exam").style.display = "block";
+  selectedQuestions = shuffle([...questions]).slice(0, 30);
+  renderQuestions();
+  startTimer();
+}
+
+function renderQuestions() {
+  const box = document.getElementById("questionBox");
+  box.innerHTML = "";
+  selectedQuestions.forEach((q, i) => {
+    let html = `<div class="question"><p><b>Câu ${i+1}:</b> ${q.question}</p>`;
+    if (q.type === "mcq") {
+      q.options.forEach(opt => {
+        html += `<label><input type="radio" name="q${i}" value="${opt}"> ${opt}</label><br>`;
+      });
+    } else {
+      html += `<input type="text" name="q${i}" placeholder="Nhập đáp án..." />`;
+    }
+    html += `</div>`;
+    box.innerHTML += html;
+  });
+}
+
+function startTimer() {
+  timer = setInterval(() => {
+    timeLeft--;
+    const min = Math.floor(timeLeft / 60);
+    const sec = timeLeft % 60;
+    document.getElementById("time").textContent = `${min}:${sec.toString().padStart(2, "0")}`;
+    if (timeLeft <= 0) submitExam();
+  }, 1000);
+}
+
+function submitExam() {
+  clearInterval(timer);
+  let correct = 0;
+  let resultHTML = "<h2>Kết quả</h2>";
+  selectedQuestions.forEach((q, i) => {
+    let userAnswer = "";
+    if (q.type === "mcq") {
+      const selected = document.querySelector(`input[name="q${i}"]:checked`);
+      userAnswer = selected ? selected.value : "";
+    } else {
+      const input = document.querySelector(`input[name="q${i}"]`);
+      userAnswer = input ? input.value.trim() : "";
+    }
+    const isCorrect = userAnswer.toLowerCase() === q.answer.toLowerCase();
+    if (isCorrect) correct++;
+    resultHTML += `<p>Câu ${i+1}: ${isCorrect ? "✅ Đúng" : "❌ Sai"} | Bạn làm: ${userAnswer || "Chưa làm"} | Đáp án: <b>${q.answer}</b></p>`;
+  });
+  resultHTML += `<h3>🏆 Tổng kết: Đúng ${correct}/30 – Sai ${30 - correct}</h3>`;
+  document.getElementById("exam").style.display = "none";
+  const resultBox = document.getElementById("result");
+  resultBox.style.display = "block";
+  resultBox.innerHTML = resultHTML;
+}
+
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+
+</body>
+</html>
